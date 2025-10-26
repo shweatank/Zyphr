@@ -1,0 +1,72 @@
+# =========================================================
+# Zephyr + west full setup and QEMU "Hello World" example
+# Tested on Ubuntu 22.04 / 24.04
+# =========================================================
+
+# 1️⃣ System prerequisites
+sudo apt update
+sudo apt install -y --no-install-recommends \
+    git cmake ninja-build gperf ccache dfu-util \
+    device-tree-compiler wget \
+    python3-dev python3-pip python3-setuptools python3-tk python3-wheel xz-utils file make gcc g++ \
+    qemu-system-x86
+
+# 2️⃣ Python virtual environment (recommended)
+mkdir -p ~/zephyrproject
+cd ~/zephyrproject
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install west
+
+# 3️⃣ Verify west installation
+west --version
+
+# 4️⃣ Initialize Zephyr project
+west init -m https://github.com/zephyrproject-rtos/zephyr
+west update
+west zephyr-export
+
+# 5️⃣ Install Python requirements for Zephyr
+pip install -r zephyr/scripts/requirements-base.txt
+
+# 6️⃣ Create a simple app
+mkdir -p ~/zephyrproject/my_zephyr_app/src
+
+cat > ~/zephyrproject/my_zephyr_app/src/main.c <<'EOF'
+#include <zephyr.h>
+#include <sys/printk.h>
+
+void main(void)
+{
+    printk("Hello Zephyr on QEMU!\n");
+    while (1) {
+        printk("Tick: %u\n", k_uptime_get_32());
+        k_sleep(K_SECONDS(1));
+    }
+}
+EOF
+
+cat > ~/zephyrproject/my_zephyr_app/prj.conf <<'EOF'
+CONFIG_PRINTK=y
+EOF
+
+cat > ~/zephyrproject/my_zephyr_app/CMakeLists.txt <<'EOF'
+cmake_minimum_required(VERSION 3.20.0)
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(my_zephyr_app)
+target_sources(app PRIVATE src/main.c)
+EOF
+
+# 7️⃣ Build and run for QEMU (x86)
+cd ~/zephyrproject
+west build -b qemu_x86 my_zephyr_app
+west build -t run
+
+# 8️⃣ Expected output
+# You should see something like:
+#   Hello Zephyr on QEMU!
+#   Tick: 0
+#   Tick: 1000
+#   Tick: 2000
+# =========================================================
