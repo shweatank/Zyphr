@@ -1,0 +1,139 @@
+# Zephyr RTOS on QEMU — Beginner Step-by-Step Guide
+
+## 1. Zephyr and QEMU in simple words
+
+**Zephyr** is a modern RTOS supporting many microcontrollers and boards.  
+**QEMU** emulates CPUs/boards so you can run Zephyr without physical hardware.
+
+Goal: Run Zephyr's `hello_world` sample on `qemu_x86`.
+
+---
+
+## 2. Install prerequisites
+
+### On Ubuntu/Debian
+
+```bash
+sudo apt update
+sudo apt install --yes     git cmake ninja-build gperf     ccache dfu-util device-tree-compiler wget     python3 python3-pip python3-venv     python3-tk python3-wheel     xz-utils file make gcc g++ libsdl2-dev
+```
+
+For Windows users, WSL (Ubuntu) is recommended.
+
+---
+
+## 3. Setup workspace and install West
+
+```bash
+mkdir -p ~/zephyr-work
+cd ~/zephyr-work
+python3 -m venv zephyr-venv
+source zephyr-venv/bin/activate
+pip install --upgrade pip
+pip install west
+```
+
+---
+
+## 4. Fetch Zephyr source with West
+
+```bash
+west init zephyrproject
+cd zephyrproject
+west update
+west zephyr-export
+```
+
+---
+
+## 5. Install Zephyr SDK (toolchains + QEMU)
+
+```bash
+cd ~/zephyr-work/zephyrproject
+mkdir tools && cd tools
+wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.5/zephyr-sdk-0.16.5_linux-x86_64.tar.xz
+tar xvf zephyr-sdk-0.16.5_linux-x86_64.tar.xz
+cd zephyr-sdk-0.16.5
+./setup.sh
+export ZEPHYR_SDK_INSTALL_DIR=$HOME/zephyr-work/zephyrproject/tools/zephyr-sdk-0.16.5
+```
+
+---
+
+## 6. Build Zephyr “hello_world” for QEMU
+
+```bash
+cd ~/zephyr-work/zephyrproject/zephyr/samples/hello_world
+west build -b qemu_x86 .
+west build -t run
+```
+
+Expected Output:
+```
+***** Booting Zephyr OS vX.Y.Z *****
+Hello World! qemu_x86
+```
+
+To try ARM version:
+```bash
+rm -rf build
+west build -b qemu_cortex_m3 .
+west build -t run
+```
+
+---
+
+## 7. Modify and rerun
+
+Edit `src/main.c`:
+
+```c
+#include <zephyr/kernel.h>
+#include <zephyr/sys/printk.h>
+
+int main(void)
+{
+    int counter = 0;
+    while (1) {
+        printk("TechDhaba Beat %d on %s\n", counter, CONFIG_BOARD);
+        counter++;
+        k_sleep(K_MSEC(1000));
+    }
+    return 0;
+}
+```
+
+Rebuild and run:
+```bash
+west build
+west build -t run
+```
+
+Output:
+```
+TechDhaba Beat 0 on qemu_x86
+TechDhaba Beat 1 on qemu_x86
+TechDhaba Beat 2 on qemu_x86
+...
+```
+
+---
+
+## 8. Quick Command Cheat Sheet
+
+```bash
+sudo apt install -y git cmake ninja-build gperf device-tree-compiler python3-pip python3-venv libsdl2-dev
+mkdir ~/zephyr-work && cd ~/zephyr-work
+python3 -m venv zephyr-venv && source zephyr-venv/bin/activate
+pip install west
+west init zephyrproject && cd zephyrproject && west update && west zephyr-export
+wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.5/zephyr-sdk-0.16.5_linux-x86_64.tar.xz
+tar xvf zephyr-sdk-0.16.5_linux-x86_64.tar.xz && cd zephyr-sdk-0.16.5 && ./setup.sh
+export ZEPHYR_SDK_INSTALL_DIR=$HOME/zephyr-work/zephyrproject/tools/zephyr-sdk-0.16.5
+cd ~/zephyr-work/zephyrproject/zephyr/samples/hello_world
+west build -b qemu_x86 . && west build -t run
+```
+
+---
+
+✅ You have now successfully installed Zephyr, built and executed your first Zephyr application on QEMU!
